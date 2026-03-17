@@ -9,7 +9,7 @@ from datetime import datetime, timedelta
 TELEGRAM_TOKEN = "8657297017:AAHXR2ckJVBhykSo7B60EhYcFnVFogezbus"
 
 # 👑 حط الـ chat_id بتاعك هنا
-ADMIN_ID = "PUT_YOUR_CHAT_ID_HERE"
+ADMIN_ID = "5199247792"
 
 # 🌐 لينك الموقع (Railway)
 BASE_URL = "https://tradingbot.up.railway.app"
