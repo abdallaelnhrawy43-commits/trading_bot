@@ -1,0 +1,29 @@
+<h1>🚀 AI Crypto Trader</h1>
+
+<h2>Plans</h2>
+
+<form action="/create-payment" method="POST">
+<input type="hidden" name="plan" value="basic">
+<button>Signals - $19.99</button>
+</form>
+
+<form action="/create-payment" method="POST">
+<input type="hidden" name="plan" value="pro">
+<button>Bot - $59.99</button>
+</form>
+
+<form action="/create-payment" method="POST">
+<input type="hidden" name="plan" value="vip">
+<button>VIP - $99.99</button>
+</form>
+
+<h3>📊 Live</h3>
+<p>Users: <span id="users">0</span></p>
+
+<script>
+setInterval(async ()=>{
+ let r=await fetch("/stats");
+ let d=await r.json();
+ document.getElementById("users").innerText=d.users;
+},2000);
+</script>

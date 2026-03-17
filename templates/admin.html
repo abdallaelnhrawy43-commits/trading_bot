@@ -1,0 +1,36 @@
+<h1>👑 Admin</h1>
+
+<table border="1">
+<tr><th>Email</th><th>Plan</th><th>Status</th><th>Action</th></tr>
+
+{% for u in users %}
+<tr>
+<td>{{u[1]}}</td>
+<td>{{u[6]}}</td>
+<td>{{u[7]}}</td>
+
+<td>
+<form action="/activate" method="POST">
+<input type="hidden" name="email" value="{{u[1]}}">
+<select name="plan">
+<option value="basic">basic</option>
+<option value="pro">pro</option>
+<option value="vip">vip</option>
+</select>
+<button>Activate</button>
+</form>
+
+<form action="/deactivate" method="POST">
+<input type="hidden" name="email" value="{{u[1]}}">
+<button>Stop</button>
+</form>
+
+<form action="/delete" method="POST">
+<input type="hidden" name="email" value="{{u[1]}}">
+<button>Delete</button>
+</form>
+
+</td>
+</tr>
+{% endfor %}
+</table>

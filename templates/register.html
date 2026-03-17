@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Register</title>
+<style>
+body {
+    background: linear-gradient(135deg, #1e3c72, #2a5298);
+    font-family: Arial;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100vh;
+}
+
+.container {
+    background: white;
+    padding: 30px;
+    border-radius: 15px;
+    width: 300px;
+    text-align: center;
+}
+
+h2 {
+    margin-bottom: 20px;
+}
+
+input {
+    width: 100%;
+    padding: 10px;
+    margin: 10px 0;
+    border-radius: 8px;
+    border: 1px solid #ccc;
+}
+
+button {
+    width: 100%;
+    padding: 10px;
+    background: #2a5298;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+}
+
+button:hover {
+    background: #1e3c72;
+}
+
+a {
+    display: block;
+    margin-top: 10px;
+    color: #2a5298;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+<h2>Create Account</h2>
+
+<form method="POST">
+<input name="name" placeholder="Full Name" required>
+<input name="email" placeholder="Email" required>
+<input name="password" type="password" placeholder="Password" required>
+<input type="hidden" name="chat_id" value="{{chat_id}}">
+<button>Register</button>
+</form>
+
+<a href="/login">Already have an account?</a>
+</div>
+
+</body>
+</html>
