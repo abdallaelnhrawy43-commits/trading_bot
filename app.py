@@ -80,23 +80,39 @@ def activate_user(email, plan):
         json.dump(data,f,indent=4)
 
 # ================== Register ==================
-@app.route("/register", methods=["GET","POST"])
+@app.route("/register", methods=["GET", "POST"])
 def register():
     chat_id = request.args.get("chat_id")
 
-    if request.method=="POST":
-        name = request.form["name"]
+    if request.method == "POST":
+        name = request.form["name"]  # مش مستخدم حالياً
         email = request.form["email"]
         password = request.form["password"]
 
         conn = db()
         c = conn.cursor()
 
+        # منع تكرار الايميل
+        user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+        if user:
+            return "Email already exists"
+
+        # تسجيل المستخدم (ده المهم 👇)
         c.execute("""
-        INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?)
-        """,(name,email,password,1,"0000",chat_id,"free",0,"0"))
+        INSERT INTO users (email, password, is_paid, trial_start, plan, status)
+        VALUES (?, ?, ?, ?, ?, ?)
+        """, (
+            email,
+            password,
+            0,
+            datetime.now().strftime("%Y-%m-%d"),
+            "basic",
+            "active"
+        ))
 
         conn.commit()
+        conn.close()
+
         session["user"] = email
         return redirect("/dashboard")
 
