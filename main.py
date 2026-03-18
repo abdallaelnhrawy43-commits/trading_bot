@@ -12,7 +12,7 @@ TELEGRAM_TOKEN = "8657297017:AAHXR2ckJVBhykSo7B60EhYcFnVFogezbus"
 ADMIN_ID = "5199247792"
 
 # 🌐 لينك الموقع (Railway)
-BASE_URL = "https://tradingbot.up.railway.app"
+BASE_URL = "https://tradingbot-production-78de.up.railway.app"
 
 
 def send(chat_id, msg):
@@ -121,6 +121,8 @@ def strong_signal(data):
     )
 
 # ===== Main Loop =====
+print("Bot is running...")
+
 while True:
     try:
         handle_messages()
