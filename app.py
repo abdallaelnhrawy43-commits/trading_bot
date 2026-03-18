@@ -17,6 +17,27 @@ def home():
 # دالة الاتصال بالداتابيز
 def db():
     return sqlite3.connect("users.db")
+# 👇 هنا تضيف
+def init_db():
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        email TEXT,
+        password TEXT,
+        is_paid INTEGER,
+        trial_start TEXT,
+        plan TEXT,
+        status TEXT
+    )
+    """)
+
+    conn.commit()
+    conn.close()
+
+init_db()
 
 # (اختياري للتأكد)
 print("Templates Path:", os.path.join(BASE_DIR, "templates"))
@@ -159,7 +180,7 @@ def admin_login():
 
     return render_template("login.html")
 
-@@app.route("/admin")
+@app.route("/admin")
 def admin():
     if not session.get("admin"):
         return redirect("/admin-login")
@@ -173,6 +194,10 @@ def admin():
         users = []
 
     return render_template("admin.html", users=users)
+
+
+
+
 
 @app.route("/activate", methods=["POST"])
 def activate():
