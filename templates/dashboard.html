@@ -1,6 +1,6 @@
 <h1>🚀 AI Crypto Trader</h1>
 
-<h2>Plans</h2>
+<h2>💳 Plans</h2>
 
 <form action="/create-payment" method="POST">
 <input type="hidden" name="plan" value="basic">
@@ -17,13 +17,23 @@
 <button>VIP - $99.99</button>
 </form>
 
-<h3>📊 Live</h3>
-<p>Users: <span id="users">0</span></p>
+<h2>🔐 ربط الحساب</h2>
+
+<form action="/save-api" method="POST">
+<input name="api_key" placeholder="API KEY"><br>
+<input name="secret" placeholder="SECRET"><br>
+<input name="amount" placeholder="Amount"><br>
+<button>Start Bot 🚀</button>
+</form>
+
+<h3>💰 أرباحك</h3>
+<p id="profit">0</p>
 
 <script>
 setInterval(async ()=>{
- let r=await fetch("/stats");
+ let r=await fetch("/api/data");
  let d=await r.json();
- document.getElementById("users").innerText=d.users;
+ let user=Object.values(d)[0];
+ document.getElementById("profit").innerText=user.amount+" $";
 },2000);
 </script>
