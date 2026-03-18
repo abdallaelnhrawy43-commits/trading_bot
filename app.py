@@ -221,5 +221,72 @@ def api_data():
             return json.load(f)
     except:
         return {}
+    
+    # ===== Admin Login =====
+@app.route("/admin-login", methods=["GET", "POST"])
+def admin_login():
+    if request.method == "POST":
+        email = request.form["email"]
+        password = request.form["password"]
 
-app.run(host="0.0.0.0", port=5000, debug=True)
+        # 👑 بيانات الادمن (غيرها براحتك)
+        if email == "abdallamohamed22@admin.com" and password == "Abdalla0100@?"
+            session["admin"] = True
+            return redirect("/admin")
+
+    return render_template("login.html")
+
+
+# ===== Admin Panel =====
+@app.route("/admin")
+def admin():
+    if not session.get("admin"):
+        return redirect("/admin-login")
+
+    conn = db()
+    c = conn.cursor()
+
+    users = c.execute("SELECT * FROM users").fetchall()
+
+    return render_template("admin.html", users=users)
+
+
+# ===== Activate User =====
+@app.route("/activate", methods=["POST"])
+def activate():
+    email = request.form["email"]
+    plan = request.form["plan"]
+
+    activate_user(email, plan)
+    return redirect("/admin")
+
+
+# ===== Deactivate =====
+@app.route("/deactivate", methods=["POST"])
+def deactivate():
+    email = request.form["email"]
+
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("UPDATE users SET is_paid=0 WHERE email=?", (email,))
+    conn.commit()
+
+    return redirect("/admin")
+
+
+# ===== Delete =====
+@app.route("/delete", methods=["POST"])
+def delete():
+    email = request.form["email"]
+
+    conn = db()
+    c = conn.cursor()
+
+    c.execute("DELETE FROM users WHERE email=?", (email,))
+    conn.commit()
+
+    return redirect("/admin")
+
+if __name__ == "__main__":
+    app.run()
