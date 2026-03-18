@@ -208,6 +208,3 @@ def api_login():
 def api_data():
     with open("users.json") as f:
         return json.load(f)
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000, debug=True)
