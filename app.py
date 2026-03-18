@@ -159,14 +159,18 @@ def admin_login():
 
     return render_template("login.html")
 
-@app.route("/admin")
+@@app.route("/admin")
 def admin():
     if not session.get("admin"):
         return redirect("/admin-login")
 
-    conn = db()
-    c = conn.cursor()
-    users = c.execute("SELECT * FROM users").fetchall()
+    try:
+        conn = db()
+        c = conn.cursor()
+        users = c.execute("SELECT * FROM users").fetchall()
+    except Exception as e:
+        print("DB Error:", e)
+        users = []
 
     return render_template("admin.html", users=users)
 
