@@ -1,10 +1,21 @@
+
 from flask import Flask, render_template, request, redirect, session, jsonify
 import sqlite3, json
 from datetime import datetime, timedelta
 import os
+import requests
 
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
+# 🔐 ADMIN
+ADMIN_EMAIL = "abdallamohamed22@gmail.com"
+ADMIN_PASSWORD = "Abdalla0100@?"
+
+# 💳 PAYMOB
+PAYMOB_API_KEY = "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRFME1qTXdOaXdpYm1GdFpTSTZJakUzTnpNNE5qRTBPRFV1TnpReU1qRTJJbjAuUzFwcG9Wa1VMcmRneWxudHo1Qng5YzhqamFqQnRxN3pjVkpTZmY5RnlpMGtJeGp1Qkx2dDAtaTFEU3JxandaT2JoOF9YcmdJOEszNFAwUEpBRU1xbHc="
+INTEGRATION_ID = 5584573
+IFRAME_ID = "1016821"
+
+BASE_DIR = os.path.dirname(os.path.abspath(file))
+app = Flask(name, template_folder=os.path.join(BASE_DIR, "templates"))
 app.secret_key = "secret"
 
 TRIAL_DAYS = 1
@@ -13,10 +24,10 @@ TRIAL_DAYS = 1
 def db():
     return sqlite3.connect("users.db")
 
+# ===== INIT =====
 def init_db():
     conn = db()
     c = conn.cursor()
-
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -29,41 +40,24 @@ def init_db():
         expiry TEXT
     )
     """)
-
     conn.commit()
     conn.close()
 
 init_db()
 
-# ===== Trial =====
-def is_trial_active(trial_start):
-    start = datetime.strptime(trial_start, "%Y-%m-%d %H:%M:%S")
-    return datetime.now() - start < timedelta(days=TRIAL_DAYS)
-
-# ===== Activate =====
+# ===== ACTIVATE =====
 def activate_user(email, plan):
     conn = db()
     c = conn.cursor()
-
     expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-
-    c.execute("""
-    UPDATE users SET is_paid=1, plan=?, expiry=? WHERE email=?
-    """, (plan, expiry, email))
-
+    c.execute("UPDATE users SET is_paid=1, plan=?, expiry=?, status='active' WHERE email=?",
+              (plan, expiry, email))
     conn.commit()
     conn.close()
 
-# ===== Home =====
-@app.route("/")
-def home():
-    return redirect("/login")
-
-# ===== Register =====
-@app.route("/register", methods=["GET", "POST"])
+# ===== REGISTER =====
+@app.route("/register", methods=["GET","POST"])
 def register():
-    chat_id = request.args.get("chat_id")
-
     if request.method == "POST":
         email = request.form["email"]
         password = request.form["password"]
@@ -71,21 +65,8 @@ def register():
         conn = db()
         c = conn.cursor()
 
-        user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
-        if user:
-            return "Email already exists"
-
-        c.execute("""
-        INSERT INTO users (email, password, is_paid, trial_start, plan, status)
-        VALUES (?, ?, ?, ?, ?, ?)
-        """, (
-            email,
-            password,
-            0,
-            datetime.now().strftime("%Y-%m-%d %H:%M:%S"),
-            "basic",
-            "active"
-        ))
+        c.execute("INSERT INTO users (email,password,is_paid,trial_start,plan,status) VALUES (?,?,?,?,?,?)",
+                  (email,password,0,datetime.now().strftime("%Y-%m-%d %H:%M:%S"),"basic","active"))
 
         conn.commit()
         conn.close()
@@ -93,10 +74,10 @@ def register():
         session["user"] = email
         return redirect("/dashboard")
 
-    return render_template("register.html", chat_id=chat_id)
+    return render_template("login.html")
 
-# ===== Login =====
-@app.route("/login", methods=["GET", "POST"])
+# ===== LOGIN =====
+@app.route("/login", methods=["GET","POST"])
 def login():
     if request.method == "POST":
         email = request.form["email"]
@@ -104,9 +85,8 @@ def login():
 
         conn = db()
         c = conn.cursor()
-
         user = c.execute("SELECT * FROM users WHERE email=? AND password=?",
-                         (email, password)).fetchone()
+                         (email,password)).fetchone()
 
         if user:
             session["user"] = email
@@ -114,130 +94,116 @@ def login():
 
     return render_template("login.html")
 
-# ===== Dashboard =====
+# ===== DASHBOARD =====
 @app.route("/dashboard")
 def dashboard():
-    return render_template("dashboard.html")
+    if not session.get("user"):
+        return redirect("/login")
 
-# ===== Save API =====
-@app.route("/save-api", methods=["POST"])
-def save_api():
-    email = session.get("user")
-
-    api_key = request.form["api_key"]
-    secret = request.form["secret"]
-    amount = float(request.form["amount"])
-
-    conn = db()
-    c = conn.cursor()
-
-    user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
-    user_id = str(user[0])
-
-    try:
-        with open("users.json") as f:
-            data = json.load(f)
-    except:
-        data = {}
-
-    data[user_id] = {
-        "api_key": api_key,
-        "secret": secret,
-        "amount": amount,
-        "is_paid": True,
-        "risk": 0.02,
-        "mode": "future"
-    }
-
-    with open("users.json", "w") as f:
-        json.dump(data, f, indent=4)
-
-    return "✅ تم الربط وبدء التداول"
-
-# ===== Check Access =====
-@app.route("/check-access")
-def check_access():
-    email = session.get("user")
+    email = session["user"]
 
     conn = db()
     c = conn.cursor()
     user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+
+    if email == ADMIN_EMAIL:
+        return render_template("dashboard.html", plan="ADMIN", expiry="∞")
 
     if user[3] == 1:
-        return {"status": "paid"}
+        expiry = datetime.strptime(user[7], "%Y-%m-%d")
+        if datetime.now() > expiry:
+            return "❌ انتهى الاشتراك"
+        return render_template("dashboard.html", plan=user[5], expiry=user[7])
 
-    if is_trial_active(user[4]):
-        return {"status": "trial"}
+    return render_template("dashboard.html", plan="Trial", expiry="Free")
 
-    return {"status": "expired"}
-
-# ===== Trial Status =====
-@app.route("/trial-status")
-def trial_status():
-    email = session.get("user")
-
-    conn = db()
-    c = conn.cursor()
-    user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
-
-    start = datetime.strptime(user[4], "%Y-%m-%d %H:%M:%S")
-    remaining = timedelta(days=TRIAL_DAYS) - (datetime.now() - start)
-
-    if remaining.total_seconds() <= 0:
-        return {"msg": "❌ انتهت التجربة"}
-
-    return {"msg": f"🔥 باقي {remaining.seconds//3600} ساعة"}
-
-# ===== Payment (تجريبي) =====
+# ===== PAYMOB PAYMENT =====
 @app.route("/create-payment", methods=["POST"])
 def create_payment():
+
     email = session.get("user")
-    plan = request.form["plan"]
+    plan = request.form.get("plan")
 
-    activate_user(email, plan)
-    return "💰 تم الاشتراك بنجاح"
+    if plan == "basic":
+        amount = 1250
+    elif plan == "pro":
+        amount = 3000
+    elif plan == "vip":
+        amount = 5000
+    else:
+        return "Invalid"
 
-# ===== Stats =====
-@app.route("/stats")
-def stats():
+    auth = requests.post("https://accept.paymob.com/api/auth/tokens",
+                         json={"api_key": PAYMOB_API_KEY}).json()
+
+    token = auth["token"]
+
+    order = requests.post("https://accept.paymob.com/api/ecommerce/orders",
+                          json={
+                              "auth_token": token,
+                              "delivery_needed": False,
+                              "amount_cents": amount * 100,
+                              "currency": "EGP",
+                              "items": [],
+                              "shipping_data": {
+                                  "email": email,
+                                  "first_name": plan
+                              }
+                          }).json()
+
+    order_id = order["id"]
+
+    payment_key = requests.post("https://accept.paymob.com/api/acceptance/payment_keys",
+                                json={
+                                    "auth_token": token,
+                                    "amount_cents": amount * 100,
+                                    "expiration": 3600,
+                                    "order_id": order_id,
+                                    "billing_data": {
+                                        "email": email,
+                                        "first_name": plan,
+                                        "last_name": "user",
+                                        "phone_number": "01000000000",
+                                        "city": "Cairo",
+                                        "country": "EG"
+                                    },
+                                    "currency": "EGP",
+                                    "integration_id": INTEGRATION_ID
+                                }).json()
+
+    final_token = payment_key["token"]
+
+    return redirect(f"https://accept.paymob.com/api/acceptance/iframes/{IFRAME_ID}?payment_token={final_token}")
+
+# ===== WEBHOOK =====
+@app.route("/paymob-callback", methods=["POST"])
+def paymob_callback():
+    data = request.json
+
     try:
-        with open("users.json") as f:
-            users = json.load(f)
-    except:
-        users = {}
+        if data["obj"]["success"]:
+            email = data["obj"]["order"]["shipping_data"]["email"]
+            plan = data["obj"]["order"]["shipping_data"]["first_name"]
 
-    profits = [u.get("amount", 0) for u in users.values()]
+            activate_user(email, plan)
+            print("Activated:", email, plan)
 
-    return jsonify({
-        "users": len(users),
-        "profit": round(sum(profits), 2)
-    })
+    except Exception as e:
+        print("Webhook error:", e)
 
-# ===== API =====
-@app.route("/api/data")
-def api_data():
-    try:
-        with open("users.json") as f:
-            return json.load(f)
-    except:
-        return {}
-    
-    # ===== Admin Login =====
-@app.route("/admin-login", methods=["GET", "POST"])
+    return "OK"
+
+# ===== ADMIN LOGIN =====
+@app.route("/admin-login", methods=["GET","POST"])
 def admin_login():
     if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
-
-        # 👑 بيانات الادمن (غيرها براحتك)
-        if email == "abdallamohamed22@gmail.com" and password == "Abdalla0100@":
+        if request.form["email"] == ADMIN_EMAIL and request.form["password"] == ADMIN_PASSWORD:
             session["admin"] = True
             return redirect("/admin")
 
-    return render_template("login.html")
+    return "<form method='POST'><input name='email'><input name='password'><button>Login</button></form>"
 
-
-# ===== Admin Panel =====
+# ===== ADMIN PANEL =====
 @app.route("/admin")
 def admin():
     if not session.get("admin"):
@@ -245,48 +211,9 @@ def admin():
 
     conn = db()
     c = conn.cursor()
-
-    users = c.execute("SELECT * FROM users").fetchall()
+    users = c.execute("SELECT id,email,plan,is_paid,expiry FROM users").fetchall()
 
     return render_template("admin.html", users=users)
 
-
-# ===== Activate User =====
-@app.route("/activate", methods=["POST"])
-def activate():
-    email = request.form["email"]
-    plan = request.form["plan"]
-
-    activate_user(email, plan)
-    return redirect("/admin")
-
-
-# ===== Deactivate =====
-@app.route("/deactivate", methods=["POST"])
-def deactivate():
-    email = request.form["email"]
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("UPDATE users SET is_paid=0 WHERE email=?", (email,))
-    conn.commit()
-
-    return redirect("/admin")
-
-
-# ===== Delete =====
-@app.route("/delete", methods=["POST"])
-def delete():
-    email = request.form["email"]
-
-    conn = db()
-    c = conn.cursor()
-
-    c.execute("DELETE FROM users WHERE email=?", (email,))
-    conn.commit()
-
-    return redirect("/admin")
-
-if __name__ == "__main__":
-    app.run()
+if name == "main":
+    app.rundebug=Tru

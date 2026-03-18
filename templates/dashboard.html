@@ -1,39 +1,239 @@
-<h1>🚀 AI Crypto Trader</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>AI Crypto Trader</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
 
-<h2>💳 Plans</h2>
+<body>
+<meta charset="UTF-8">
+<title>AI Trader Dashboard</title>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+
+<style>
+body {
+    margin: 0;
+    font-family: 'Segoe UI', sans-serif;
+    background: linear-gradient(135deg, #020617, #0f172a);
+    color: white;
+}
+
+/* 🔥 HERO /
+.hero {
+    padding: 40px;
+    text-align: center;
+}
+
+.hero h1 {
+    color: #22c55e;
+    font-size: 32px;
+}
+
+.status {
+    margin-top: 10px;
+    color: #38bdf8;
+}
+
+/ 💳 PLANS /
+.plans {
+    display: flex;
+    justify-content: center;
+    gap: 25px;
+    margin: 40px;
+    flex-wrap: wrap;
+}
+
+.card {
+    background: linear-gradient(145deg, #1e293b, #0f172a);
+    padding: 25px;
+    border-radius: 20px;
+    width: 270px;
+    transition: 0.3s;
+    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+}
+
+.card:hover {
+    transform: scale(1.07);
+}
+
+.card h2 {
+    color: #22c55e;
+}
+
+.price {
+    font-size: 26px;
+    margin: 10px 0;
+}
+
+ul {
+    list-style: none;
+    padding: 0;
+}
+
+ul li {
+    margin: 8px 0;
+}
+
+/ 🔥 BUTTONS /
+button {
+    padding: 12px;
+    width: 100%;
+    border-radius: 10px;
+    border: none;
+    margin-top: 8px;
+    font-weight: bold;
+    cursor: pointer;
+}
+
+.pay {
+    background: #22c55e;
+}
+
+.manual {
+    background: #f59e0b;
+}
+
+/ 💎 VIP /
+.vip {
+    border: 2px solid gold;
+}
+
+/ 📊 BOX */
+.box {
+    margin: 40px;
+    text-align: center;
+}
+
+canvas {
+    max-width: 600px;
+    margin: auto;
+}
+
+#profit {
+    font-size: 30px;
+    color: #22c55e;
+}
+</style>
+
+</head>
+
+<body>
+
+<!-- 🔥 HERO -->
+<div class="hero">
+    <h1>🚀 AI Crypto Trader</h1>
+    <p>Smart Trading • AI Powered • Passive Income</p>
+
+    <div class="status">
+        📦 Plan: {{plan}} | ⏳ Expiry: {{expiry}}
+    </div>
+</div>
+
+<!-- 💳 PLANS -->
+<div class="plans">
+
+<div class="card">
+<h2>Basic</h2>
+<div class="price">$25</div>
+
+<ul>
+<li>✔ Signals</li>
+<li>✔ Basic Support</li>
+<li>❌ No Bot</li>
+</ul>
 
 <form action="/create-payment" method="POST">
 <input type="hidden" name="plan" value="basic">
-<button>Signals - $19.99</button>
+<button class="pay">💳 Subscribe</button>
 </form>
+
+<a href="/pay/basic">
+<button class="manual">💸 Manual</button>
+</a>
+
+</div>
+
+<div class="card">
+<h2>Pro 🔥</h2>
+<div class="price">$59.99</div>
+
+<ul>
+<li>✔ AI Bot</li>
+<li>✔ Risk Control</li>
+<li>✔ Auto Trading</li>
+</ul>
 
 <form action="/create-payment" method="POST">
 <input type="hidden" name="plan" value="pro">
-<button>Bot - $59.99</button>
+<button class="pay">💳 Subscribe</button>
 </form>
+
+<a href="/pay/pro">
+<button class="manual">💸 Manual</button>
+</a>
+
+</div>
+
+<div class="card vip">
+<h2>VIP 💎</h2>
+<div class="price">$99.99</div>
+
+<ul>
+<li>✔ Full AI</li>
+<li>✔ VIP Signals</li>
+<li>✔ 24/7 Support</li>
+</ul>
 
 <form action="/create-payment" method="POST">
 <input type="hidden" name="plan" value="vip">
-<button>VIP - $99.99</button>
+<button class="pay">💳 Subscribe</button>
 </form>
 
-<h2>🔐 ربط الحساب</h2>
+<a href="/pay/vip">
+<button class="manual">💸 Manual</button>
+</a>
 
-<form action="/save-api" method="POST">
-<input name="api_key" placeholder="API KEY"><br>
-<input name="secret" placeholder="SECRET"><br>
-<input name="amount" placeholder="Amount"><br>
-<button>Start Bot 🚀</button>
-</form>
+</div>
 
-<h3>💰 أرباحك</h3>
+</div>
+
+<!-- 💰 PROFIT -->
+<div class="box">
+<h2>💰 Profit</h2>
 <p id="profit">0</p>
+</div>
+
+<!-- 📊 CHART -->
+<div class="box">
+<h2>📊 Performance</h2>
+<canvas id="chart"></canvas>
+</div>
 
 <script>
+let chart = new Chart(document.getElementById("chart"), {
+    type: 'line',
+    data: {
+        labels: [],
+        datasets: [{
+            label: "Profit",
+            data: []
+        }]
+    }
+});
+
 setInterval(async ()=>{
  let r=await fetch("/api/data");
  let d=await r.json();
  let user=Object.values(d)[0];
+
  document.getElementById("profit").innerText=user.amount+" $";
-},2000);
+
+ chart.data.labels.push("");
+ chart.data.datasets[0].data.push(user.amount);
+ chart.update();
+},3000);
 </script>
+
+</body>
+</html>

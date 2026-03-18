@@ -1,11 +1,118 @@
-<h2>💰 الدفع عبر Binance (USDT)</h2>
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Payment</title>
 
-<p>ابعت الفلوس على العنوان ده:</p>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/qrcodejs/1.0.0/qrcode.min.js"></script>
 
-<h3>USDT (TRC20)</h3>
-<p style="color:red;">TSiwGKuanfvay6RMem1zJ8QqcDFQKTXVF1</p>
+<style>
+body {
+    background: #141e30;
+    color: white;
+    text-align: center;
+    font-family: Arial;
+}
 
-<form method="POST">
-    <input name="txid" placeholder="حط TxID هنا" required>
-    <button>تأكيد الدفع</button>
+.container {
+    background: #1f2a40;
+    padding: 20px;
+    width: 350px;
+    margin: auto;
+    border-radius: 10px;
+}
+
+.wallet {
+    background: black;
+    padding: 10px;
+    margin: 10px;
+    border-radius: 8px;
+    word-break: break-all;
+}
+
+button {
+    padding: 10px;
+    width: 100%;
+    margin: 5px 0;
+    background: #00c853;
+    border: none;
+    color: white;
+    border-radius: 5px;
+}
+
+input {
+    width: 100%;
+    padding: 8px;
+    margin: 5px 0;
+}
+</style>
+</head>
+
+<body>
+
+<div class="container">
+
+<h2>💰 الدفع - {{plan}}</h2>
+
+<select id="method" onchange="changeMethod()">
+    <option value="usdt">USDT</option>
+    <option value="bnb">BNB</option>
+    <option value="btc">BTC</option>
+    <option value="binance">Binance Pay</option>
+    <option value="instapay">Instapay</option>
+</select>
+
+<div id="walletBox" class="wallet"></div>
+
+<button onclick="copyAddress()">📋 Copy Address</button>
+
+<div id="qrcode"></div>
+
+<form method="POST" enctype="multipart/form-data">
+    <input name="txid" placeholder="TxID (اختياري)">
+    <input type="file" name="screenshot" required>
+    <button type="submit">تم الدفع</button>
 </form>
+
+</div>
+
+<script>
+
+let address = "";
+
+function changeMethod(){
+    let method = document.getElementById("method").value;
+
+    if(method==="usdt"){
+        address = "TSiWGKuanfvay6RMm1zJ8QqCDFQKTXVF1";
+    }
+    if(method==="bnb"){
+        address = "0x28b3ef0b015f628de61df4ae3c3fe0b6e4fb6002";
+    }
+    if(method==="btc"){
+        address = "18mJV33tAtcy7NTsxvRhKzs7TghCoeBQRA";
+    }
+    if(method==="binance"){
+        address = "378168527";
+    }
+    if(method==="instapay"){
+        address = "01005794633";
+    }
+
+    document.getElementById("walletBox").innerText = address;
+
+    document.getElementById("qrcode").innerHTML = "";
+    new QRCode(document.getElementById("qrcode"), address);
+}
+
+function copyAddress(){
+    navigator.clipboard.writeText(address);
+    alert("تم النسخ ✅");
+}
+
+changeMethod();
+
+</script>
+
+</body>
+</html>

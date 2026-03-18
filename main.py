@@ -4,6 +4,9 @@ import time
 import requests
 import json
 from datetime import datetime, timedelta
+import csv
+import joblib
+model = joblib.load("model.pkl")
 
 TELEGRAM_TOKEN = "8657297017:AAEg2iFQB4CUokip8_70Tn21uhqSHOEbbng"
 ADMIN_ID = "5199247792"
@@ -76,6 +79,9 @@ def can_use(chat_id, user):
         return True
 
     if user.get("is_paid"):
+     expiry = datetime.strptime(user.get("expiry", "2000-01-01"), "%Y-%m-%d")
+
+    if datetime.now() < expiry:
         return True
 
     start = datetime.strptime(user.get("trial_start"), "%Y-%m-%d")
@@ -110,33 +116,26 @@ def get_best_symbols(exchange):
 
 # 🔥 تحليل احترافي
 def analyze(symbol, exchange):
-    tf = exchange.fetch_ohlcv(symbol, '5m', limit=100)
+    tf = exchange.fetch_ohlcv(symbol, '5m', limit=50)
     df = pd.DataFrame(tf, columns=['t','o','h','l','c','v'])
 
-    ema_short = df['c'].ewm(span=10).mean().iloc[-1]
-    ema_long = df['c'].ewm(span=30).mean().iloc[-1]
+    entry = df['c'].iloc[-2]
+    current = df['c'].iloc[-1]
 
-    delta = df['c'].diff()
-    gain = (delta.where(delta > 0, 0)).rolling(14).mean()
-    loss = (-delta.where(delta < 0, 0)).rolling(14).mean()
-    rs = gain / loss
-    rsi = 100 - (100 / (1 + rs))
-    rsi_val = rsi.iloc[-1]
+    change = (current - entry) / entry
+    volume = current - entry
 
-    avg_vol = df['v'].rolling(20).mean().iloc[-1]
-    vol = df['v'].iloc[-1]
+    # 🔥 فلتر بسيط (market condition)
+    if abs(change) < 0.002:
+        return False, current
 
-    high = df['h'].rolling(20).max().iloc[-2]
-    price = df['c'].iloc[-1]
+    features = [[entry, change, volume]]
 
-    signal = (
-        ema_short > ema_long and
-        rsi_val < 60 and
-        vol > avg_vol * 1.5 and
-        price > high
-    )
+    prediction = model.predict(features)[0]
 
-    return signal, price
+    signal = prediction == 1
+
+    return signal, current
 
 # 🔥 خروج ذكي
 def exit_logic(entry, current):
@@ -163,59 +162,79 @@ def adjust_risk(user):
         return max(0.01, user.get("risk",0.02) - 0.01)
 
 print("Bot is running...")
-
 while True:
     try:
-        handle_messages()
         users = load_users()
 
         for chat_id, user in users.items():
 
+            # 🔥 منع الخسائر المتتالية
+            loss_streak = sum(1 for x in user.get("history", [])[-3:] if x < 0)
+
+            if loss_streak >= 3:
+                send(chat_id, "🛑 وقفنا التداول مؤقت بسبب خسائر متتالية")
+                continue
+
+            # 🔥 تحقق من الاشتراك
             if not can_use(chat_id, user):
                 send(chat_id, "❌ انتهت الفترة التجريبية\nاشترك علشان تكمل 💰")
                 continue
 
             try:
                 exchange = ccxt.binance({
-                    "options": {"defaultType": "future"}
+                    "apiKey": user.get("api_key"),
+                    "secret": user.get("secret"),
+                    "enableRateLimit": True,
+                    "options": {
+                        "defaultType": user.get("mode", "future")
+                    }
                 })
 
-                symbols = get_best_symbols(exchange)
+                symbols = ["BTC/USDT", "ETH/USDT"]
 
                 for symbol in symbols:
-                    try:
-                        signal, price = analyze(symbol, exchange)
+                    signal, price = analyze(symbol, exchange)
 
-                        if signal:
-                            risk = adjust_risk(user)
-                            amount = (user["amount"] * risk) / price
+                    if signal:
+                        balance = user.get("amount", 50)
+                        risk = user.get("risk", 0.02)
 
-                            send(chat_id, f"🚀 دخول صفقة {symbol}\nPrice: {price}")
+                        amount = (balance * risk) / price
 
-                            entry = price
+                        send(chat_id, f"🚀 دخول صفقة {symbol} @ {price}")
 
-                            while True:
-                                current = exchange.fetch_ticker(symbol)["last"]
+                        # تنفيذ شراء
+                        exchange.create_market_buy_order(symbol, amount)
 
-                                decision = exit_logic(entry, current)
+                        entry = price
 
-                                if decision == "SL":
-                                    send(chat_id, f"❌ Stop Loss {symbol}")
-                                    user["history"].append(-1)
-                                    break
+                        while True:
+                            current = exchange.fetch_ticker(symbol)["last"]
 
-                                if decision == "TP":
-                                    profit = (current-entry)/entry*100
-                                    send(chat_id, f"💰 Profit {profit:.2f}% {symbol}")
+                            decision = exit_logic(entry, current)
 
-                                    user["amount"] += user["amount"] * (profit/100)
-                                    user["history"].append(profit)
-                                    break
+                            if decision == "SL":
+                                exchange.create_market_sell_order(symbol, amount)
+                                send(chat_id, f"❌ Stop Loss {symbol}")
 
-                                time.sleep(3)
+                                user["history"].append(-1)
+                                log_trade(symbol, entry, current, -1, 0)
+                                break
 
-                    except Exception as e:
-                        print("Symbol Error:", e)
+                            if decision == "TP":
+                                exchange.create_market_sell_order(symbol, amount)
+
+                                profit = (current - entry) / entry * 100
+
+                                send(chat_id, f"💰 Profit {profit:.2f}% {symbol}")
+
+                                user["amount"] += user["amount"] * (profit / 100)
+                                user["history"].append(profit)
+
+                                log_trade(symbol, entry, current, profit, 1)
+                                break
+
+                            time.sleep(3)
 
             except Exception as e:
                 print("User Error:", e)
