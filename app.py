@@ -230,7 +230,7 @@ def admin_login():
         password = request.form["password"]
 
         # 👑 بيانات الادمن (غيرها براحتك)
-        if email == "abdallamohamed22@admin.com" and password == "Abdalla0100@?"
+        if email == "abdallamohamed22@gmail.com" and password == "Abdalla0100@":
             session["admin"] = True
             return redirect("/admin")
 
