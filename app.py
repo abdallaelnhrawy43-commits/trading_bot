@@ -150,7 +150,7 @@ def paypal_webhook():
 @app.route("/admin-login", methods=["GET","POST"])
 def admin_login():
     if request.method=="POST":
-        if request.form["email"]=="admin@admin.com" and request.form["password"]=="123456":
+        if request.form["email"]=="abdallamohamed@admin.com" and request.form["password"]=="Abdalla0100@?":
             session["admin"]=True
             return redirect("/admin")
 
@@ -158,8 +158,10 @@ def admin_login():
 
 @app.route("/admin")
 def admin():
-    if not session.get("admin"):
-        return redirect("/admin-login")
+    key = request.args.get("key")
+
+    if key != "admin123":
+        return "Access Denied ❌"
 
     conn = db()
     c = conn.cursor()
@@ -208,3 +210,5 @@ def api_login():
 def api_data():
     with open("users.json") as f:
         return json.load(f)
+    
+    application = app

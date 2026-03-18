@@ -6,7 +6,7 @@ import json
 from datetime import datetime, timedelta
 
 # 🔥 حط توكن البوت الجديد هنا
-TELEGRAM_TOKEN = "8657297017:AAHXR2ckJVBhykSo7B60EhYcFnVFogezbus"
+TELEGRAM_TOKEN = "8657297017:AAEg2iFQB4CUokip8_70Tn21uhqSHOEbbng"
 
 # 👑 حط الـ chat_id بتاعك هنا
 ADMIN_ID = "5199247792"

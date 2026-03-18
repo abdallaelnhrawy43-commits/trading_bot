@@ -1,15 +1,102 @@
-<h1>👑 Admin</h1>
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Admin Panel</title>
+
+    <style>
+        body {
+            font-family: Arial;
+            background: #0f172a;
+            color: white;
+            padding: 20px;
+        }
+
+        h1 {
+            color: #22c55e;
+        }
+
+        table {
+            border-collapse: collapse;
+            width: 100%;
+            background: #1e293b;
+        }
+
+        th, td {
+            padding: 12px;
+            text-align: center;
+        }
+
+        th {
+            background: #111827;
+            color: #22c55e;
+        }
+
+        tr:nth-child(even) {
+            background: #0f172a;
+        }
+
+        button {
+            padding: 6px 10px;
+            margin: 2px;
+            border: none;
+            cursor: pointer;
+            border-radius: 5px;
+        }
+
+        .activate {
+            background: #22c55e;
+            color: black;
+        }
+
+        .stop {
+            background: #facc15;
+        }
+
+        .delete {
+            background: #ef4444;
+            color: white;
+        }
+
+        select {
+            padding: 5px;
+        }
+
+    </style>
+</head>
+
+<body>
+
+<h1>👑 Admin Dashboard</h1>
+
+<h3>👥 Total Users: {{users|length}}</h3>
 
 <table border="1">
-<tr><th>Email</th><th>Plan</th><th>Status</th><th>Action</th></tr>
+
+<tr>
+    <th>Email</th>
+    <th>Plan</th>
+    <th>Status</th>
+    <th>Action</th>
+</tr>
 
 {% for u in users %}
 <tr>
+
 <td>{{u[1]}}</td>
+
 <td>{{u[6]}}</td>
-<td>{{u[7]}}</td>
 
 <td>
+{% if u[7] == 1 %}
+✅ Active
+{% else %}
+❌ Free
+{% endif %}
+</td>
+
+<td>
+
+<!-- Activate -->
 <form action="/activate" method="POST">
 <input type="hidden" name="email" value="{{u[1]}}">
 <select name="plan">
@@ -17,20 +104,27 @@
 <option value="pro">pro</option>
 <option value="vip">vip</option>
 </select>
-<button>Activate</button>
+<button class="activate">Activate</button>
 </form>
 
+<!-- Stop -->
 <form action="/deactivate" method="POST">
 <input type="hidden" name="email" value="{{u[1]}}">
-<button>Stop</button>
+<button class="stop">Stop</button>
 </form>
 
+<!-- Delete -->
 <form action="/delete" method="POST">
 <input type="hidden" name="email" value="{{u[1]}}">
-<button>Delete</button>
+<button class="delete">Delete</button>
 </form>
 
 </td>
+
 </tr>
 {% endfor %}
+
 </table>
+
+</body>
+</html>
