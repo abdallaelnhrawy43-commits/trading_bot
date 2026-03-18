@@ -153,7 +153,7 @@ def admin_login():
         email = request.form["email"]
         password = request.form["password"]
 
-        if email == "abdallamohamed" and password == "Abdalla0100@?":
+        if email == "abdallamohamed22@gmail.com" and password == "Abdalla0100@?":
             session["admin"] = True
             return redirect("/admin")
 
