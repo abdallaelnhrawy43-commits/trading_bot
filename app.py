@@ -5,18 +5,31 @@ from datetime import datetime, timedelta
 import os
 import requests
 
+TOKEN = os.environ.get("TOKEN")
+
+def send_message(chat_id, text):
+    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
+    requests.post(url, json={
+        "chat_id": chat_id,
+        "text": text
+    })
+
 # 🔐 ADMIN
-ADMIN_EMAIL = "abdallamohamed22@gmail.com"
-ADMIN_PASSWORD = "Abdalla0100@?"
+ADMIN_EMAIL = os.environ.get("abdallamohamed22@gmail.com")
+ADMIN_PASSWORD = os.environ.get("Abdalla0100@?")
 
 # 💳 PAYMOB
-PAYMOB_API_KEY = "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRFME1qTXdOaXdpYm1GdFpTSTZJakUzTnpNNE5qRTBPRFV1TnpReU1qRTJJbjAuUzFwcG9Wa1VMcmRneWxudHo1Qng5YzhqamFqQnRxN3pjVkpTZmY5RnlpMGtJeGp1Qkx2dDAtaTFEU3JxandaT2JoOF9YcmdJOEszNFAwUEpBRU1xbHc="
-INTEGRATION_ID = 5584573
-IFRAME_ID = "1016821"
+PAYMOB_API_KEY = os.environ.get("ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRFME1qTXdOaXdpYm1GdFpTSTZJakUzTnpNNE5qRTBPRFV1TnpReU1qRTJJbjAuUzFwcG9Wa1VMcmRneWxudHo1Qng5YzhqamFqQnRxN3pjVkpTZmY5RnlpMGtJeGp1Qkx2dDAtaTFEU3JxandaT2JoOF9YcmdJOEszNFAwUEpBRU1xbHc=")
+INTEGRATION_ID = int(os.environ.get("5584573"))
+IFRAME_ID = os.environ.get("1016821")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 app.secret_key = "secret"
+
+@app.route("/")
+def home():
+    return "البوت شغال 🔥"
 
 TRIAL_DAYS = 1
 
@@ -192,6 +205,29 @@ def paymob_callback():
         print("Webhook error:", e)
 
     return "OK"
+@app.route("/webhook", methods=["POST"])
+def telegram_webhook():
+    data = request.json
+
+    if "message" in data:
+        chat_id = data["message"]["chat"]["id"]
+        text = data["message"].get("text")
+
+        if text == "/start":
+            send_message(chat_id, """🚀 AI Crypto Trader
+
+🎁 معاك يوم مجاني تجربة
+
+📊 إشارات محدودة:
+✔ Spot
+✔ Futures
+
+💰 ابدأ من هنا:
+https://YOUR-LINK.up.railway.app
+
+🔥 متفوتش الفرصة""")
+
+    return "ok"
 
 # ===== ADMIN LOGIN =====
 @app.route("/admin-login", methods=["GET","POST"])
