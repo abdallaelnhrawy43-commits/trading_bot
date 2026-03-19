@@ -5,3 +5,4 @@ joblib
 requests
 gunicorn
 ccxt
+werkzeug
