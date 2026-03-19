@@ -4,6 +4,9 @@ import sqlite3, json
 from datetime import datetime, timedelta
 import os
 import requests
+from flask import Flask, request
+
+app = Flask(__name__)
 
 TOKEN = os.environ.get("TOKEN")
 
@@ -204,6 +207,10 @@ def paymob_callback():
         print("Webhook error:", e)
 
     return "OK"
+@app.route("/")
+def home():
+    return "Server is running"
+
 @app.route("/webhook", methods=["POST"])
 def telegram_webhook():
     data = request.json
