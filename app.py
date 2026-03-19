@@ -14,8 +14,8 @@ PAYMOB_API_KEY = "ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3
 INTEGRATION_ID = 5584573
 IFRAME_ID = "1016821"
 
-BASE_DIR = os.path.dirname(os.path.abspath(file))
-app = Flask(name, template_folder=os.path.join(BASE_DIR, "templates"))
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
 app.secret_key = "secret"
 
 TRIAL_DAYS = 1
@@ -215,5 +215,5 @@ def admin():
 
     return render_template("admin.html", users=users)
 
-if name == "main":
-    app.rundebug=Tru
+if __name__ == "__main__":
+    app.run(debug=True)
