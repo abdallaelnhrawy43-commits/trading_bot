@@ -212,7 +212,7 @@ def telegram_webhook():
         chat_id = data["message"]["chat"]["id"]
         text = data["message"].get("text")
 
-        if text == "/start":
+        if text and text == "/start":
             send_message(chat_id, """🚀 AI Crypto Trader
 
 🎁 معاك يوم مجاني تجربة
@@ -222,9 +222,10 @@ def telegram_webhook():
 ✔ Futures
 
 💰 ابدأ من هنا:
-https://YOUR-LINK.up.railway.app
+https://tradingbot-production-78de.up.railway.app
 
-🔥 متفوتش الفرصة""")
+🔥 متفوتش الفرصة
+""")
 
     return "ok"
 
