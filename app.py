@@ -15,13 +15,12 @@ def send_message(chat_id, text):
     })
 
 # 🔐 ADMIN
-ADMIN_EMAIL = os.environ.get("abdallamohamed22@gmail.com")
-ADMIN_PASSWORD = os.environ.get("Abdalla0100@?")
-
+ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
+ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
 # 💳 PAYMOB
-PAYMOB_API_KEY = os.environ.get("ZXlKaGJHY2lPaUpJVXpVeE1pSXNJblI1Y0NJNklrcFhWQ0o5LmV5SmpiR0Z6Y3lJNklrMWxjbU5vWVc1MElpd2ljSEp2Wm1sc1pWOXdheUk2TVRFME1qTXdOaXdpYm1GdFpTSTZJakUzTnpNNE5qRTBPRFV1TnpReU1qRTJJbjAuUzFwcG9Wa1VMcmRneWxudHo1Qng5YzhqamFqQnRxN3pjVkpTZmY5RnlpMGtJeGp1Qkx2dDAtaTFEU3JxandaT2JoOF9YcmdJOEszNFAwUEpBRU1xbHc=")
-INTEGRATION_ID = int(os.environ.get("5584573"))
-IFRAME_ID = os.environ.get("1016821")
+PAYMOB_API_KEY = os.environ.get("PAYMOB_API_KEY")
+INTEGRATION_ID = int(os.environ.get("INTEGRATION_ID"))
+IFRAME_ID = os.environ.get("IFRAME_ID")
 
 BASE_DIR = os.path.dirname(os.path.abspath(__file__))
 app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
