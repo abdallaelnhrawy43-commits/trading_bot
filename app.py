@@ -1,58 +1,36 @@
-
-from flask import Flask, render_template, request, redirect, session, jsonify
-import sqlite3, json
+from flask import Flask, request, render_template, redirect, session
+import sqlite3, os, requests
 from datetime import datetime, timedelta
-import os
-import requests
-from flask import Flask, request
+from werkzeug.security import generate_password_hash, check_password_hash
+import ccxt
+import pandas as pd
 
 app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "secret")
 
 TOKEN = os.environ.get("TOKEN")
-
-def send_message(chat_id, text):
-    url = f"https://api.telegram.org/bot{TOKEN}/sendMessage"
-    requests.post(url, json={
-        "chat_id": chat_id,
-        "text": text
-    })
-
-# 🔐 ADMIN
-ADMIN_EMAIL = os.environ.get("ADMIN_EMAIL")
-ADMIN_PASSWORD = os.environ.get("ADMIN_PASSWORD")
-# 💳 PAYMOB
-PAYMOB_API_KEY = os.environ.get("PAYMOB_API_KEY")
-INTEGRATION_ID = int(os.environ.get("INTEGRATION_ID"))
-IFRAME_ID = os.environ.get("IFRAME_ID")
-
-BASE_DIR = os.path.dirname(os.path.abspath(__file__))
-app = Flask(__name__, template_folder=os.path.join(BASE_DIR, "templates"))
-app.secret_key = "secret"
-
-@app.route("/")
-def home():
-    return "البوت شغال 🔥"
-
-TRIAL_DAYS = 1
+BASE_URL = "https://tradingbot-production-78de.up.railway.app"
 
 # ===== DB =====
 def db():
     return sqlite3.connect("users.db")
 
-# ===== INIT =====
 def init_db():
     conn = db()
     c = conn.cursor()
     c.execute("""
     CREATE TABLE IF NOT EXISTS users (
-        id INTEGER PRIMARY KEY AUTOINCREMENT,
         email TEXT,
         password TEXT,
+        chat_id TEXT,
         is_paid INTEGER,
-        trial_start TEXT,
         plan TEXT,
-        status TEXT,
-        expiry TEXT
+        trial_start TEXT,
+        trades INTEGER,
+        expiry TEXT,
+        api_key TEXT,
+        api_secret TEXT,
+        profit REAL DEFAULT 0
     )
     """)
     conn.commit()
@@ -60,54 +38,58 @@ def init_db():
 
 init_db()
 
-# ===== ACTIVATE =====
-def activate_user(email, plan):
-    conn = db()
-    c = conn.cursor()
-    expiry = (datetime.now() + timedelta(days=30)).strftime("%Y-%m-%d")
-    c.execute("UPDATE users SET is_paid=1, plan=?, expiry=?, status='active' WHERE email=?",
-              (plan, expiry, email))
-    conn.commit()
-    conn.close()
+# ===== TELEGRAM =====
+def send(chat_id, text):
+    requests.post(f"https://api.telegram.org/bot{TOKEN}/sendMessage",
+                  json={"chat_id": chat_id, "text": text})
+
+# ===== HOME =====
+@app.route("/")
+def home():
+    return "🔥 البوت شغال"
 
 # ===== REGISTER =====
 @app.route("/register", methods=["GET","POST"])
 def register():
     if request.method == "POST":
         email = request.form["email"]
-        password = request.form["password"]
+        password = generate_password_hash(request.form["password"])
+        chat_id = request.args.get("chat_id")
 
         conn = db()
         c = conn.cursor()
-
-        c.execute("INSERT INTO users (email,password,is_paid,trial_start,plan,status) VALUES (?,?,?,?,?,?)",
-                  (email,password,0,datetime.now().strftime("%Y-%m-%d %H:%M:%S"),"basic","active"))
-
+        c.execute("INSERT INTO users VALUES (?,?,?,?,?,?,?,?,?,?,?)",
+                  (email,password,chat_id,0,"trial",
+                   datetime.now().strftime("%Y-%m-%d"),0,None,None,None,0))
         conn.commit()
         conn.close()
 
         session["user"] = email
         return redirect("/dashboard")
 
-    return render_template("login.html")
+    return '''
+    <form method="POST">
+    <input name="email" placeholder="Email">
+    <input name="password" placeholder="Password">
+    <button>Register</button>
+    </form>
+    '''
 
 # ===== LOGIN =====
-@app.route("/login", methods=["GET","POST"])
+@app.route("/login", methods=["POST"])
 def login():
-    if request.method == "POST":
-        email = request.form["email"]
-        password = request.form["password"]
+    email = request.form["email"]
+    password = request.form["password"]
 
-        conn = db()
-        c = conn.cursor()
-        user = c.execute("SELECT * FROM users WHERE email=? AND password=?",
-                         (email,password)).fetchone()
+    conn = db()
+    c = conn.cursor()
+    user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
 
-        if user:
-            session["user"] = email
-            return redirect("/dashboard")
+    if user and check_password_hash(user[1], password):
+        session["user"] = email
+        return redirect("/dashboard")
 
-    return render_template("login.html")
+    return "❌ خطأ"
 
 # ===== DASHBOARD =====
 @app.route("/dashboard")
@@ -115,148 +97,135 @@ def dashboard():
     if not session.get("user"):
         return redirect("/login")
 
-    email = session["user"]
-
     conn = db()
     c = conn.cursor()
-    user = c.execute("SELECT * FROM users WHERE email=?", (email,)).fetchone()
+    user = c.execute("SELECT * FROM users WHERE email=?", (session["user"],)).fetchone()
 
-    if email == ADMIN_EMAIL:
-        return render_template("dashboard.html", plan="ADMIN", expiry="∞")
+    return f"""
+    <h2>Dashboard</h2>
+    <p>Plan: {user[4]}</p>
+    <p>Trades: {user[6]}</p>
+    <p>Profit: {user[10]}</p>
 
-    if user[3] == 1:
-        expiry = datetime.strptime(user[7], "%Y-%m-%d")
-        if datetime.now() > expiry:
-            return "❌ انتهى الاشتراك"
-        return render_template("dashboard.html", plan=user[5], expiry=user[7])
+    <form action="/save-api" method="POST">
+    <input name="api_key" placeholder="API KEY">
+    <input name="api_secret" placeholder="SECRET">
+    <button>ربط Binance</button>
+    </form>
+    """
 
-    return render_template("dashboard.html", plan="Trial", expiry="Free")
+# ===== SAVE API =====
+@app.route("/save-api", methods=["POST"])
+def save_api():
+    conn = db()
+    c = conn.cursor()
 
-# ===== PAYMOB PAYMENT =====
-@app.route("/create-payment", methods=["POST"])
-def create_payment():
+    c.execute("UPDATE users SET api_key=?, api_secret=? WHERE email=?",
+              (request.form["api_key"], request.form["api_secret"], session["user"]))
 
-    email = session.get("user")
-    plan = request.form.get("plan")
+    conn.commit()
+    conn.close()
 
-    if plan == "basic":
-        amount = 1250
-    elif plan == "pro":
-        amount = 3000
-    elif plan == "vip":
-        amount = 5000
-    else:
-        return "Invalid"
+    return "✅ تم الربط"
 
-    auth = requests.post("https://accept.paymob.com/api/auth/tokens",
-                         json={"api_key": PAYMOB_API_KEY}).json()
-
-    token = auth["token"]
-
-    order = requests.post("https://accept.paymob.com/api/ecommerce/orders",
-                          json={
-                              "auth_token": token,
-                              "delivery_needed": False,
-                              "amount_cents": amount * 100,
-                              "currency": "EGP",
-                              "items": [],
-                              "shipping_data": {
-                                  "email": email,
-                                  "first_name": plan
-                              }
-                          }).json()
-
-    order_id = order["id"]
-
-    payment_key = requests.post("https://accept.paymob.com/api/acceptance/payment_keys",
-                                json={
-                                    "auth_token": token,
-                                    "amount_cents": amount * 100,
-                                    "expiration": 3600,
-                                    "order_id": order_id,
-                                    "billing_data": {
-                                        "email": email,
-                                        "first_name": plan,
-                                        "last_name": "user",
-                                        "phone_number": "01000000000",
-                                        "city": "Cairo",
-                                        "country": "EG"
-                                    },
-                                    "currency": "EGP",
-                                    "integration_id": INTEGRATION_ID
-                                }).json()
-
-    final_token = payment_key["token"]
-
-    return redirect(f"https://accept.paymob.com/api/acceptance/iframes/{IFRAME_ID}?payment_token={final_token}")
-
-# ===== WEBHOOK =====
+# ===== PAYMENT CALLBACK =====
 @app.route("/paymob-callback", methods=["POST"])
-def paymob_callback():
+def paymob():
     data = request.json
 
-    try:
-        if data["obj"]["success"]:
-            email = data["obj"]["order"]["shipping_data"]["email"]
-            plan = data["obj"]["order"]["shipping_data"]["first_name"]
+    if data["obj"]["success"]:
+        email = data["obj"]["order"]["shipping_data"]["email"]
 
-            activate_user(email, plan)
-            print("Activated:", email, plan)
+        conn = db()
+        c = conn.cursor()
 
-    except Exception as e:
-        print("Webhook error:", e)
+        expiry = (datetime.now()+timedelta(days=30)).strftime("%Y-%m-%d")
+        c.execute("UPDATE users SET is_paid=1, plan='VIP', expiry=? WHERE email=?",
+                  (expiry,email))
+
+        user = c.execute("SELECT chat_id FROM users WHERE email=?", (email,)).fetchone()
+
+        conn.commit()
+        conn.close()
+
+        if user:
+            send(user[0], "🔥 اشتراكك اتفعل!")
 
     return "OK"
-@app.route("/")
-def home():
-    return "Server is running"
 
+# ===== TRIAL =====
+def can_trade(user):
+    if user[3] == 1:
+        return True
+
+    start = datetime.strptime(user[5], "%Y-%m-%d")
+
+    if datetime.now() - start < timedelta(days=1) and user[6] < 5:
+        return True
+
+    return False
+
+# ===== AI SIGNAL =====
+def calculate_rsi(df, period=14):
+    delta = df['c'].diff()
+    gain = (delta.where(delta > 0, 0)).rolling(period).mean()
+    loss = (-delta.where(delta < 0, 0)).rolling(period).mean()
+    rs = gain / loss
+    return 100 - (100 / (1 + rs))
+
+def generate_signal():
+    try:
+        exchange = ccxt.binance()
+
+        symbol = "BTC/USDT"
+        ohlcv = exchange.fetch_ohlcv(symbol, '5m', limit=100)
+
+        df = pd.DataFrame(ohlcv, columns=['t','o','h','l','c','v'])
+
+        df['ema20'] = df['c'].ewm(span=20).mean()
+        df['ema50'] = df['c'].ewm(span=50).mean()
+        df['rsi'] = calculate_rsi(df)
+
+        last = df.iloc[-1]
+
+        if last['rsi'] < 30 and last['ema20'] > last['ema50']:
+            return f"🚀 BUY {symbol}"
+
+        if last['rsi'] > 70 and last['ema20'] < last['ema50']:
+            return f"🔻 SELL {symbol}"
+
+        return "⏳ لا يوجد فرصة حالياً"
+
+    except:
+        return "⚠️ خطأ في التحليل"
+
+# ===== TELEGRAM =====
 @app.route("/webhook", methods=["POST"])
-def telegram_webhook():
+def webhook():
     data = request.json
 
     if "message" in data:
-        chat_id = data["message"]["chat"]["id"]
+        chat_id = str(data["message"]["chat"]["id"])
         text = data["message"].get("text")
 
-        if text and text == "/start":
-            send_message(chat_id, """🚀 AI Crypto Trader
+        conn = db()
+        c = conn.cursor()
+        user = c.execute("SELECT * FROM users WHERE chat_id=?", (chat_id,)).fetchone()
 
-🎁 معاك يوم مجاني تجربة
+        if text == "/start":
+            link = f"{BASE_URL}/register?chat_id={chat_id}"
+            send(chat_id, f"🚀 سجل من هنا:\n{link}")
 
-📊 إشارات محدودة:
-✔ Spot
-✔ Futures
+        elif user:
+            if not can_trade(user):
+                send(chat_id, "❌ انتهت التجربة")
+            else:
+                signal = generate_signal()
+                send(chat_id, signal)
 
-💰 ابدأ من هنا:
-https://tradingbot-production-78de.up.railway.app
+                c.execute("UPDATE users SET trades = trades + 1 WHERE chat_id=?", (chat_id,))
+                conn.commit()
 
-🔥 متفوتش الفرصة
-""")
+        conn.close()
 
     return "ok"
-
-# ===== ADMIN LOGIN =====
-@app.route("/admin-login", methods=["GET","POST"])
-def admin_login():
-    if request.method == "POST":
-        if request.form["email"] == ADMIN_EMAIL and request.form["password"] == ADMIN_PASSWORD:
-            session["admin"] = True
-            return redirect("/admin")
-
-    return "<form method='POST'><input name='email'><input name='password'><button>Login</button></form>"
-
-# ===== ADMIN PANEL =====
-@app.route("/admin")
-def admin():
-    if not session.get("admin"):
-        return redirect("/admin-login")
-
-    conn = db()
-    c = conn.cursor()
-    users = c.execute("SELECT id,email,plan,is_paid,expiry FROM users").fetchall()
-
-    return render_template("admin.html", users=users)
-
-if __name__ == "__main__":
-    app.run(debug=True)
