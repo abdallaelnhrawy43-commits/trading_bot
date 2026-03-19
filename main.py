@@ -6,7 +6,14 @@ import json
 from datetime import datetime, timedelta
 import csv
 import joblib
-model = joblib.load("model.pkl")
+import os
+
+# باقي imports...
+
+if os.path.exists("model.pkl"):
+    model = joblib.load("model.pkl")
+else:
+    model = None
 
 TELEGRAM_TOKEN = "8657297017:AAEg2iFQB4CUokip8_70Tn21uhqSHOEbbng"
 ADMIN_ID = "5199247792"
