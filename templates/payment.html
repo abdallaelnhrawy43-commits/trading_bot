@@ -69,8 +69,11 @@ input {
 <div id="qrcode"></div>
 
 <form method="POST" enctype="multipart/form-data">
+    <input type="hidden" name="plan" value="{{plan}}">
+    
     <input name="txid" placeholder="TxID (اختياري)">
     <input type="file" name="screenshot" required>
+    
     <button type="submit">تم الدفع</button>
 </form>
 

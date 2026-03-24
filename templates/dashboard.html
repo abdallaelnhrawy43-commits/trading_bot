@@ -1,64 +1,99 @@
 <!DOCTYPE html>
 <html>
 <head>
-    <title>AI Crypto Trader</title>
-    <link rel="stylesheet" href="/static/style.css">
-</head>
-
-<body>
 <meta charset="UTF-8">
-<title>AI Trader Dashboard</title>
+<title>AI Crypto Trader</title>
 
+<link rel="stylesheet" href="/static/style.css">
 <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
 
 <style>
 body {
     margin: 0;
     font-family: 'Segoe UI', sans-serif;
-    background: linear-gradient(135deg, #020617, #0f172a);
+    background: url("/static/bg.jpg") no-repeat center center fixed;
+    background-size: cover;
     color: white;
 }
 
-/* 🔥 HERO /
+/* overlay */
+body::before {
+    content: "";
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background: rgba(4, 11, 44, 0.85);
+    z-index: -1;
+}
+
+/* 🔥 HERO */
 .hero {
-    padding: 40px;
     text-align: center;
+    padding: 40px;
 }
 
 .hero h1 {
     color: #22c55e;
-    font-size: 32px;
+    font-size: 34px;
 }
 
-.status {
-    margin-top: 10px;
-    color: #38bdf8;
-}
-
-/ 💳 PLANS /
+/* 💳 PLANS */
 .plans {
     display: flex;
     justify-content: center;
-    gap: 25px;
-    margin: 40px;
+    align-items: center;
+    gap: 30px;
     flex-wrap: wrap;
+    margin-top: 40px;
 }
 
+/* 💎 CARD */
 .card {
-    background: linear-gradient(145deg, #1e293b, #0f172a);
+    background: rgba(15,23,42,0.9);
     padding: 25px;
     border-radius: 20px;
-    width: 270px;
-    transition: 0.3s;
-    box-shadow: 0 0 20px rgba(0,0,0,0.5);
+    width: 280px;
+    text-align: center;
+    position: relative;
+    overflow: hidden;
+
+    animation: fadeUp 1s ease forwards;
+
+    border: 2px solid transparent;
 }
 
+/* ✨ Glow */
+.card::before {
+    content: "";
+    position: absolute;
+    inset: -2px;
+    border-radius: 20px;
+    background: linear-gradient(45deg, #22c55e, #38bdf8, #facc15);
+    z-index: -1;
+    filter: blur(10px);
+    opacity: 0.6;
+}
+
+/* hover */
 .card:hover {
-    transform: scale(1.07);
+    transform: scale(1.08);
 }
 
-.card h2 {
-    color: #22c55e;
+/* VIP */
+.vip::before {
+    background: linear-gradient(45deg, gold, orange, yellow);
+}
+
+/* ✨ animation */
+@keyframes fadeUp {
+    from {
+        opacity: 0;
+        transform: translateY(40px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
 }
 
 .price {
@@ -75,7 +110,7 @@ ul li {
     margin: 8px 0;
 }
 
-/ 🔥 BUTTONS /
+/* 🔥 BUTTONS */
 button {
     padding: 12px;
     width: 100%;
@@ -94,43 +129,61 @@ button {
     background: #f59e0b;
 }
 
-/ 💎 VIP /
-.vip {
-    border: 2px solid gold;
-}
-
-/ 📊 BOX */
+/* 💰 PROFIT BOX */
 .box {
-    margin: 40px;
+    margin: 40px auto;
     text-align: center;
+    width: 80%;
 }
 
-canvas {
-    max-width: 600px;
-    margin: auto;
+/* 🎯 progress bar */
+.progress {
+    width: 100%;
+    height: 15px;
+    background: #1e293b;
+    border-radius: 10px;
+    overflow: hidden;
+    margin-top: 10px;
+}
+
+.progress-bar {
+    height: 100%;
+    width: 0%;
+    background: linear-gradient(90deg, #22c55e, #38bdf8);
+    transition: 0.5s;
 }
 
 #profit {
     font-size: 30px;
     color: #22c55e;
 }
-</style>
 
+canvas {
+    max-width: 600px;
+    margin: auto;
+}
+</style>
 </head>
 
 <body>
 
-<!-- 🔥 HERO -->
+<!-- HERO -->
 <div class="hero">
     <h1>🚀 AI Crypto Trader</h1>
     <p>Smart Trading • AI Powered • Passive Income</p>
 
-    <div class="status">
+    <div>
         📦 Plan: {{plan}} | ⏳ Expiry: {{expiry}}
     </div>
 </div>
 
-<!-- 💳 PLANS -->
+<form action="/toggle-bot" method="POST">
+    <button style="background:green;color:white;padding:10px;border:none;">
+        تشغيل / إيقاف البوت
+    </button>
+</form>
+
+<!-- PLANS -->
 <div class="plans">
 
 <div class="card">
@@ -138,20 +191,25 @@ canvas {
 <div class="price">$25</div>
 
 <ul>
-<li>✔ Signals</li>
-<li>✔ Basic Support</li>
-<li>❌ No Bot</li>
+<li>✔ إشارات Telegram (Spot & Futures)</li>
+<li>✔ تحليل باستخدام AI</li>
+<li>✔ مؤشرات حديثة:
+    <br>• RSI
+    <br>• MACD
+    <br>• Smart Money Concepts
+</li>
+
+<li>❌ بدون تنفيذ تلقائي</li>
+<li>❌ بدون إدارة مخاطرة متقدمة</li>
+<li>❌ بدون إشارات VIP</li>
 </ul>
 
-<form action="/create-payment" method="POST">
+<form action="/create-payment" method="GET">
 <input type="hidden" name="plan" value="basic">
 <button class="pay">💳 Subscribe</button>
 </form>
 
-<a href="/pay/basic">
-<button class="manual">💸 Manual</button>
-</a>
-
+<a href="/pay/basic"><button class="manual">💸 Manual</button></a>
 </div>
 
 <div class="card">
@@ -159,20 +217,26 @@ canvas {
 <div class="price">$59.99</div>
 
 <ul>
-<li>✔ AI Bot</li>
-<li>✔ Risk Control</li>
-<li>✔ Auto Trading</li>
+<li>✔ إشارات احترافية (Spot & Futures)</li>
+<li>✔ عدد صفقات يومية أكبر</li>
+<li>✔ دقة أعلى في التحليل</li>
+<li>✔ مؤشرات متقدمة:
+    <br>• Order Blocks
+    <br>• Liquidity Zones
+    <br>• Volume Analysis
+</li>
+
+<li>✔ إدارة مخاطرة محسنة</li>
+
+<li>❌ بدون تنفيذ تلقائي</li>
 </ul>
 
-<form action="/create-payment" method="POST">
+<form action="/create-payment" method="GET">
 <input type="hidden" name="plan" value="pro">
 <button class="pay">💳 Subscribe</button>
 </form>
 
-<a href="/pay/pro">
-<button class="manual">💸 Manual</button>
-</a>
-
+<a href="/pay/pro"><button class="manual">💸 Manual</button></a>
 </div>
 
 <div class="card vip">
@@ -180,31 +244,43 @@ canvas {
 <div class="price">$99.99</div>
 
 <ul>
-<li>✔ Full AI</li>
-<li>✔ VIP Signals</li>
-<li>✔ 24/7 Support</li>
+<li>✔ تداول تلقائي كامل (Spot & Futures)</li>
+<li>✔ ربط Binance / Bybit / OKX</li>
+<li>✔ تنفيذ صفقات بدون تدخل</li>
+<li>✔ أعلى نسبة نجاح</li>
+<li>✔ إدارة مخاطرة ذكية AI</li>
+
+<li style="color:#facc15;">
+⚠️ البوت يتداول فقط بالمبلغ الذي تحدده
+</li>
+
+<li style="color:#facc15;">
+⚠️ لا يمكنه السحب أو الإيداع — تداول فقط
+</li>
 </ul>
 
-<form action="/create-payment" method="POST">
+<form action="/create-payment" method="GET">
 <input type="hidden" name="plan" value="vip">
 <button class="pay">💳 Subscribe</button>
 </form>
 
-<a href="/pay/vip">
-<button class="manual">💸 Manual</button>
-</a>
-
+<a href="/pay/vip"><button class="manual">💸 Manual</button></a>
 </div>
 
 </div>
 
-<!-- 💰 PROFIT -->
+<!-- PROFIT -->
 <div class="box">
 <h2>💰 Profit</h2>
 <p id="profit">0</p>
+
+<div class="progress">
+<div class="progress-bar" id="bar"></div>
 </div>
 
-<!-- 📊 CHART -->
+</div>
+
+<!-- CHART -->
 <div class="box">
 <h2>📊 Performance</h2>
 <canvas id="chart"></canvas>
@@ -217,7 +293,8 @@ let chart = new Chart(document.getElementById("chart"), {
         labels: [],
         datasets: [{
             label: "Profit",
-            data: []
+            data: [],
+            borderColor: "#22c55e"
         }]
     }
 });
@@ -227,11 +304,18 @@ setInterval(async ()=>{
  let d=await r.json();
  let user=Object.values(d)[0];
 
- document.getElementById("profit").innerText=user.amount+" $";
+ let profit = user.amount;
+
+ document.getElementById("profit").innerText = profit + " $";
+
+ // progress bar
+ let percent = Math.min(profit * 5, 100);
+ document.getElementById("bar").style.width = percent + "%";
 
  chart.data.labels.push("");
- chart.data.datasets[0].data.push(user.amount);
+ chart.data.datasets[0].data.push(profit);
  chart.update();
+
 },3000);
 </script>
 

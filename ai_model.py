@@ -1,36 +1,45 @@
-import pandas as pd
-from sklearn.model_selection import train_test_split
-from sklearn.ensemble import RandomForestClassifier
-import joblib
+import numpy as np
 
-def train_model():
-    df = pd.read_csv("trades.csv")
+# ================= AI DECISION ENGINE =================
 
-    df.columns = ["time", "symbol", "entry", "exit", "profit", "result"]
+def predict_trade(signal):
+    score = 0
 
-    # 🔥 Prediction Feature
-    df["change"] = (df["exit"] - df["entry"]) / df["entry"]
+    # ===== Confidence =====
+    if signal["confidence"] >= 85:
+        score += 3
+    elif signal["confidence"] >= 75:
+        score += 2
+    else:
+        score -= 2
 
-    df["target"] = (df["change"] > 0).astype(int)
+    # ===== Trend =====
+    if signal["trend"] == "UP" and signal["direction"] == "LONG":
+        score += 2
+    elif signal["trend"] == "DOWN" and signal["direction"] == "SHORT":
+        score += 2
+    else:
+        score -= 2
 
-# 🔥 Feature جديد
-    df["volume"] = df["exit"] - df["entry"]
+    # ===== Volume =====
+    if signal["volume"] == "STRONG":
+        score += 2
+    else:
+        score -= 1
 
-    X = df[["entry", "change", "volume"]]
-    y = df["target"]
+    # ===== Smart Money =====
+    if signal["smc"] == "LIQUIDITY_BREAK_UP" and signal["direction"] == "LONG":
+        score += 3
+    elif signal["smc"] == "LIQUIDITY_BREAK_DOWN" and signal["direction"] == "SHORT":
+        score += 3
+    else:
+        score -= 2
 
-    
+    # ===== Timeframe Strength =====
+    if signal["timeframe"] == "1h":
+        score += 2
+    elif signal["timeframe"] == "15m":
+        score += 1
 
-    X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2)
-
-    model = RandomForestClassifier(n_estimators=150)
-    model.fit(X_train, y_train)
-
-    acc = model.score(X_test, y_test)
-    print("🔥 Prediction Accuracy:", acc)
-
-    joblib.dump(model, "model.pkl")
-
-
-if __name__ == "__main__":
-    train_model()
+    # ===== FINAL DECISION =====
+    return score >= 5
